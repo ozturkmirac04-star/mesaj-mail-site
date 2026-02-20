@@ -1,14 +1,10 @@
 {
   "name": "mesaj-mail-site",
   "version": "1.0.0",
-  "description": "Mesaj mail gonderme uygulamasi",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
     "nodemailer": "^6.9.8",
