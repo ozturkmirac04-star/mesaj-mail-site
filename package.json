@@ -1,18 +1,17 @@
 {
   "name": "mesaj-mail-site",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "Mesaj mail gonderme uygulamasi",
+  "main": "server.js",
   "scripts": {
-  "start": "node server.js"
-}
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "nodemailer": "^8.0.1"
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.8",
+    "cors": "^2.8.5"
   }
 }
