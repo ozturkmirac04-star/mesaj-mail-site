@@ -3,53 +3,63 @@ require("dotenv").config();
 const { Resend } = require("resend");
 
 const app = express();
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-app.post("/gonder", async (req, res) => {
-  console.log("POST /gonder geldi:", req.headers["content-type"], req.body);
-  // ...
-});
-app.use(express.urlencoded({ extended: true }));
+// Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-app.get("/health", (req, res) => res.status(200).send("OK"));
-
-app.post("/gonder", async (req, res) => {
-  const isim = (req.body.isim || "").trim();
-  const mesaj = (req.body.mesaj || "").trim();
-  const konu = (req.body.konu || "").trim(); // premium UI gönderiyor olabilir
-
-  console.log("POST /gonder:", req.headers["content-type"], { isim, konu, msgLen: mesaj.length });
-
-  if (!isim || !mesaj) return res.status(400).send("İsim ve mesaj zorunlu.");
-
-  // Resend gönderimi burada...
+// Health check
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
 });
-  const resend = new Resend(process.env.RESEND_API_KEY);
 
-  // Not: Resend'de doğrulanmış domain yoksa from adresi genelde onboarding adresi olur.
-  // Şimdilik en güvenlisi: "onboarding@resend.dev"
-  const fromAddress = process.env.FROM_EMAIL || "onboarding@resend.dev";
-  const toAddress = process.env.TO_EMAIL || process.env.EMAIL; // İstersen TO_EMAIL ekle
-
-  if (!toAddress) {
-    return res.status(500).send("Sunucu ayarı eksik: TO_EMAIL/EMAIL yok.");
-  }
-
+// Mesaj endpointi (premium HTML buna istek atıyor)
+app.post("/gonder", async (req, res) => {
   try {
-    await resend.emails.send({
-      from: fromAddress,
-      to: [toAddress],
-      subject: "Yeni Mesaj Geldi!",
-      text: `İsim: ${isim}\n\nMesaj:\n${mesaj}\n\nIP: ${req.ip}`,
+    const { isim = "", mesaj = "", konu = "" } = req.body || {};
+
+    if (!isim.trim() || !mesaj.trim()) {
+      return res.status(400).send("İsim ve mesaj zorunlu.");
+    }
+
+    console.log("POST /gonder:", { isim, konu });
+
+    const result = await resend.emails.send({
+      from: "onboarding@resend.dev", // Domain doğrulamazsan bu kalmalı
+      to: process.env.TO_EMAIL,
+      subject: `Yeni Mesaj${konu ? `: ${konu}` : ""}`,
+      html: `
+        <h2>Yeni Mesaj Geldi</h2>
+        <p><strong>İsim:</strong> ${escapeHtml(isim)}</p>
+        ${konu ? `<p><strong>Konu:</strong> ${escapeHtml(konu)}</p>` : ""}
+        <p><strong>Mesaj:</strong></p>
+        <pre style="white-space:pre-wrap;font-family:Arial">${escapeHtml(mesaj)}</pre>
+      `,
     });
+
+    console.log("Mail gönderildi:", result?.id);
 
     return res.send("Mesaj gönderildi ✅");
   } catch (err) {
-    console.log("RESEND ERROR:", err);
-    return res.status(500).send("Mail gönderilemedi ❌");
+    console.error("RESEND ERROR:", err);
+    return res.status(500).send(err?.message || "Mail gönderilemedi ❌");
   }
 });
 
+// HTML injection koruması
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// Render için zorunlu PORT
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Sunucu çalışıyor: ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Sunucu çalışıyor: ${PORT}`);
+});
