@@ -17,13 +17,14 @@ app.get("/health", (req, res) => res.status(200).send("OK"));
 app.post("/gonder", async (req, res) => {
   const isim = (req.body.isim || "").trim();
   const mesaj = (req.body.mesaj || "").trim();
+  const konu = (req.body.konu || "").trim(); // premium UI gönderiyor olabilir
+
+  console.log("POST /gonder:", req.headers["content-type"], { isim, konu, msgLen: mesaj.length });
 
   if (!isim || !mesaj) return res.status(400).send("İsim ve mesaj zorunlu.");
 
-  if (!process.env.RESEND_API_KEY) {
-    return res.status(500).send("Sunucu ayarı eksik: RESEND_API_KEY yok.");
-  }
-
+  // Resend gönderimi burada...
+});
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   // Not: Resend'de doğrulanmış domain yoksa from adresi genelde onboarding adresi olur.
