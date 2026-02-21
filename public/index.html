@@ -1,21 +1,355 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Bana Mesaj Bırak</title>
+    <meta name="theme-color" content="#0b0f19" />
+    <style>
+      :root {
+        --bg: #0b0f19;
+        --card: rgba(255, 255, 255, 0.06);
+        --card2: rgba(255, 255, 255, 0.09);
+        --border: rgba(255, 255, 255, 0.14);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.62);
+        --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+        --radius: 18px;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        color: var(--text);
+        background: radial-gradient(1200px 700px at 15% 10%, rgba(110,231,255,0.18), transparent 55%),
+                    radial-gradient(900px 600px at 85% 20%, rgba(167,139,250,0.18), transparent 50%),
+                    radial-gradient(900px 600px at 50% 95%, rgba(34,197,94,0.10), transparent 45%),
+                    var(--bg);
+        display: grid;
+        place-items: center;
+        padding: 22px;
+      }
+
+      .wrap {
+        width: min(720px, 100%);
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, var(--card), rgba(255,255,255,0.03));
+        box-shadow: var(--shadow);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      .hero {
+        padding: 22px 20px 14px;
+        position: relative;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: rgba(255,255,255,0.78);
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.14);
+        padding: 7px 10px;
+        border-radius: 999px;
+        backdrop-filter: blur(10px);
+      }
+
+      .dot {
+        width: 8px; height: 8px; border-radius: 99px;
+        background: rgba(34,197,94,0.95);
+        box-shadow: 0 0 0 6px rgba(34,197,94,0.12);
+      }
+
+      h1 {
+        margin: 12px 0 6px;
+        font-size: clamp(22px, 3.2vw, 34px);
+        letter-spacing: -0.02em;
+        line-height: 1.12;
+      }
+
+      p.sub {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14.5px;
+        line-height: 1.5;
+      }
+
+      .content {
+        padding: 16px 20px 20px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      @media (min-width: 680px) {
+        .grid.two {
+          grid-template-columns: 1fr 1fr;
+          align-items: start;
+        }
+      }
+
+      label {
+        display: block;
+        font-size: 12.5px;
+        color: rgba(255,255,255,0.75);
+        margin: 0 0 7px;
+      }
+
+      .field {
+        position: relative;
+      }
+
+      input, textarea {
+        width: 100%;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.06);
+        color: var(--text);
+        border-radius: 14px;
+        padding: 12px 12px;
+        outline: none;
+        font-size: 14.5px;
+        transition: border-color .15s ease, background .15s ease, transform .05s ease;
+      }
+
+      input:focus, textarea:focus {
+        border-color: rgba(110,231,255,0.55);
+        background: rgba(255,255,255,0.085);
+      }
+
+      textarea {
+        min-height: 130px;
+        resize: vertical;
+      }
+
+      .hint {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: rgba(255,255,255,0.55);
+      }
+
+      .count { white-space: nowrap; }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 2px;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 14px;
+        padding: 12px 14px;
+        color: rgba(255,255,255,0.92);
+        background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.05));
+        cursor: pointer;
+        font-weight: 650;
+        letter-spacing: 0.01em;
+        transition: transform .06s ease, filter .15s ease, opacity .15s ease;
+      }
+
+      .btn:active { transform: translateY(1px); }
+
+      .btn.primary {
+        border-color: rgba(110,231,255,0.32);
+        background: linear-gradient(180deg, rgba(110,231,255,0.22), rgba(167,139,250,0.16));
+      }
+
+      .btn[disabled] {
+        opacity: 0.55;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .status {
+        width: 100%;
+        border-radius: 14px;
+        padding: 12px 12px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.85);
+        display: none;
+      }
+
+      .status.ok {
+        display: block;
+        border-color: rgba(34,197,94,0.35);
+        background: rgba(34,197,94,0.12);
+      }
+
+      .status.err {
+        display: block;
+        border-color: rgba(239,68,68,0.35);
+        background: rgba(239,68,68,0.10);
+      }
+
+      .footer {
+        padding: 14px 20px 18px;
+        border-top: 1px solid rgba(255,255,255,0.10);
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        color: rgba(255,255,255,0.48);
+        font-size: 12px;
+      }
+
+      a { color: rgba(110,231,255,0.88); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+    </style>
   </head>
+
   <body>
-    <h2>Mesaj Gönder</h2>
+    <main class="wrap">
+      <section class="card">
+        <div class="hero">
+          <span class="badge"><span class="dot"></span> Mesajlar anında iletilir</span>
+          <h1>Bana bir not bırak ✍️</h1>
+          <p class="sub">İsmini ve mesajını yaz. Gönderdiğinde bana e-posta olarak ulaşır.</p>
+        </div>
 
-    <form action="/gonder" method="POST">
-      <input type="text" name="isim" placeholder="İsminiz" required />
-      <br /><br />
+        <div class="content">
+          <div id="status" class="status"></div>
 
-      <textarea name="mesaj" placeholder="Mesajınız" required></textarea>
-      <br /><br />
+          <form id="form" class="grid" autocomplete="off">
+            <div class="grid two">
+              <div class="field">
+                <label for="isim">İsim</label>
+                <input id="isim" name="isim" placeholder="Örn: Miraç" required maxlength="40" />
+                <div class="hint">
+                  <span>Bu alan zorunlu.</span>
+                  <span class="count"><span id="nameCount">0</span>/40</span>
+                </div>
+              </div>
 
-      <button type="submit">Gönder</button>
-    </form>
-  </body>
-</html>
+              <div class="field">
+                <label for="konu">Konu (opsiyonel)</label>
+                <input id="konu" name="konu" placeholder="Örn: İş birliği" maxlength="60" />
+                <div class="hint">
+                  <span>İstersen boş bırak.</span>
+                  <span class="count"><span id="topicCount">0</span>/60</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="mesaj">Mesaj</label>
+              <textarea id="mesaj" name="mesaj" placeholder="Mesajını buraya yaz..." required maxlength="1200"></textarea>
+              <div class="hint">
+                <span>Kibar ve net yaz 🙂</span>
+                <span class="count"><span id="msgCount">0</span>/1200</span>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="sendBtn" class="btn primary" type="submit">Gönder</button>
+              <button class="btn" type="button" id="clearBtn">Temizle</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="footer">
+          <span>© <span id="year"></span> Mesaj Kutusu</span>
+          <span>Gizlilik: mesajlar sadece sahibine gider.</span>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById("form");
+      const statusEl = document.getElementById("status");
+      const sendBtn = document.getElementById("sendBtn");
+      const clearBtn = document.getElementById("clearBtn");
+
+      const isim = document.getElementById("isim");
+      const konu = document.getElementById("konu");
+      const mesaj = document.getElementById("mesaj");
+
+      const nameCount = document.getElementById("nameCount");
+      const topicCount = document.getElementById("topicCount");
+      const msgCount = document.getElementById("msgCount");
+
+      document.getElementById("year").textContent = new Date().getFullYear();
+
+      function setStatus(type, text) {
+        statusEl.className = "status " + type;
+        statusEl.textContent = text;
+      }
+
+      function clearStatus() {
+        statusEl.className = "status";
+        statusEl.textContent = "";
+      }
+
+      function updateCounts() {
+        nameCount.textContent = isim.value.length;
+        topicCount.textContent = konu.value.length;
+        msgCount.textContent = mesaj.value.length;
+      }
+
+      [isim, konu, mesaj].forEach(el => el.addEventListener("input", updateCounts));
+      updateCounts();
+
+      clearBtn.addEventListener("click", () => {
+        form.reset();
+        updateCounts();
+        clearStatus();
+        isim.focus();
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        clearStatus();
+
+        const payload = {
+          isim: isim.value.trim(),
+          mesaj: mesaj.value.trim(),
+          konu: konu.value.trim(),
+        };
+
+        if (!payload.isim || !payload.mesaj) {
+          setStatus("err", "İsim ve mesaj zorunlu.");
+          return;
+        }
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = "Gönderiliyor...";
+
+        try {
+          const res = await fetch("/gonder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const text = await res.text();
+
+          if (!res.ok) {
+            setStatus("err", text || "Bir hata oluştu.");
+          } else {
+            setStatus("ok", text || "Mesaj gönderildi ✅");
+            form.reset();
+            updateCounts();
+          }
+        } catch (err) {
+          setStatus("err", "Bağlantı hatası. Tekrar deney
