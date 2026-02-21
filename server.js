@@ -1,10 +1,13 @@
-console.log("POST /gonder geldi:", req.headers["content-type"], req.body);
 const express = require("express");
 require("dotenv").config();
 const { Resend } = require("resend");
 
 const app = express();
 
+app.post("/gonder", async (req, res) => {
+  console.log("POST /gonder geldi:", req.headers["content-type"], req.body);
+  // ...
+});
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static("public"));
