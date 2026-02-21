@@ -319,38 +319,44 @@
       });
 
       form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        clearStatus();
+  e.preventDefault();
+  clearStatus();
 
-        const payload = {
-          isim: isim.value.trim(),
-          mesaj: mesaj.value.trim(),
-          konu: konu.value.trim(),
-        };
+  const payload = {
+    isim: isim.value.trim(),
+    mesaj: mesaj.value.trim(),
+    konu: konu.value.trim(),
+  };
 
-        if (!payload.isim || !payload.mesaj) {
-          setStatus("err", "İsim ve mesaj zorunlu.");
-          return;
-        }
+  if (!payload.isim || !payload.mesaj) {
+    setStatus("err", "İsim ve mesaj zorunlu.");
+    return;
+  }
 
-        sendBtn.disabled = true;
-        sendBtn.textContent = "Gönderiliyor...";
+  sendBtn.disabled = true;
+  sendBtn.textContent = "Gönderiliyor...";
 
-        try {
-          const res = await fetch("/gonder", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+  try {
+    const res = await fetch("/gonder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-          const text = await res.text();
+    const text = await res.text();
 
-          if (!res.ok) {
-            setStatus("err", text || "Bir hata oluştu.");
-          } else {
-            setStatus("ok", text || "Mesaj gönderildi ✅");
-            form.reset();
-            updateCounts();
-          }
-        } catch (err) {
-          setStatus("err", "Bağlantı hatası. Tekrar deney
+    if (!res.ok) {
+      setStatus("err", text || "Bir hata oluştu.");
+      return; // ❗ hata olunca resetleme
+    }
+
+    setStatus("ok", text || "Mesaj gönderildi ✅");
+    form.reset();
+    updateCounts();
+  } catch (err) {
+    setStatus("err", "Bağlantı hatası. Tekrar deneyin.");
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = "Gönder";
+  }
+});
