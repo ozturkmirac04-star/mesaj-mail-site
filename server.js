@@ -19,6 +19,7 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
+console.log("POST /gonder geldi:", req.headers["content-type"], req.body);
 app.post("/gonder", async (req, res) => {
   try {
     const { isim = "", mesaj = "", konu = "" } = req.body || {};
