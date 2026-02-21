@@ -1,3 +1,4 @@
+console.log("POST /gonder geldi:", req.headers["content-type"], req.body);
 const express = require("express");
 require("dotenv").config();
 const { Resend } = require("resend");
