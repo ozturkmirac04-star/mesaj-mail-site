@@ -19,8 +19,9 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
-console.log("POST /gonder geldi:", req.headers["content-type"], req.body);
 app.post("/gonder", async (req, res) => {
+  // ✅ LOG burada olmalı
+  
   try {
     const { isim = "", mesaj = "", konu = "" } = req.body || {};
 
@@ -35,7 +36,7 @@ app.post("/gonder", async (req, res) => {
       return res.status(400).send("İsim ve mesaj zorunlu.");
     }
 
-    console.log("POST /gonder:", req.headers["content-type"], {
+    console.log("POST /gonder parsed:", req.headers["content-type"], {
       isim,
       konu,
       msgLen: mesaj.length,
@@ -57,7 +58,6 @@ app.post("/gonder", async (req, res) => {
     });
 
     console.log("Mail gönderildi:", result?.id || result);
-
     return res.send("Mesaj gönderildi ✅");
   } catch (err) {
     console.error("RESEND ERROR:", err);
