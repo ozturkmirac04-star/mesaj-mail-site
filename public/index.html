@@ -45,29 +45,37 @@
         <div class="hero">
           <span class="badge"><span class="dot"></span> Mesajlar anında iletilir</span>
           <h1>Bana bir not bırak ✍️</h1>
-          <p class="sub">İsmini ve mesajını yaz. Gönderdiğinde bana e-posta olarak ulaşır.</p>
+          <p class="sub">İsmini, email adresini ve mesajını yaz. Gönderdiğinde bana e-posta olarak ulaşır.</p>
         </div>
 
         <div class="content">
           <div id="status" class="status"></div>
 
           <form id="form" class="grid" autocomplete="off">
+
             <div class="grid two">
               <div>
                 <label for="isim">İsim</label>
-                <input id="isim" name="isim" placeholder="Örn: Miraç" required maxlength="40" />
+                <input id="isim" name="isim" required maxlength="40" />
                 <div class="hint"><span>Zorunlu.</span><span><span id="nameCount">0</span>/40</span></div>
               </div>
+
               <div>
-                <label for="konu">Konu (opsiyonel)</label>
-                <input id="konu" name="konu" placeholder="Örn: İş birliği" maxlength="60" />
-                <div class="hint"><span>Boş bırakabilirsin.</span><span><span id="topicCount">0</span>/60</span></div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" required maxlength="80" />
+                <div class="hint"><span>Cevap verebilmem için gerekli.</span><span><span id="mailCount">0</span>/80</span></div>
               </div>
             </div>
 
             <div>
+              <label for="konu">Konu (opsiyonel)</label>
+              <input id="konu" name="konu" maxlength="60" />
+              <div class="hint"><span>Boş bırakabilirsin.</span><span><span id="topicCount">0</span>/60</span></div>
+            </div>
+
+            <div>
               <label for="mesaj">Mesaj</label>
-              <textarea id="mesaj" name="mesaj" placeholder="Mesajını buraya yaz..." required maxlength="1200"></textarea>
+              <textarea id="mesaj" name="mesaj" required maxlength="1200"></textarea>
               <div class="hint"><span>Kibar ve net yaz 🙂</span><span><span id="msgCount">0</span>/1200</span></div>
             </div>
 
@@ -92,10 +100,12 @@
       const clearBtn = document.getElementById("clearBtn");
 
       const isim = document.getElementById("isim");
+      const email = document.getElementById("email");
       const konu = document.getElementById("konu");
       const mesaj = document.getElementById("mesaj");
 
       const nameCount = document.getElementById("nameCount");
+      const mailCount = document.getElementById("mailCount");
       const topicCount = document.getElementById("topicCount");
       const msgCount = document.getElementById("msgCount");
 
@@ -111,10 +121,12 @@
       }
       function updateCounts() {
         nameCount.textContent = isim.value.length;
+        mailCount.textContent = email.value.length;
         topicCount.textContent = konu.value.length;
         msgCount.textContent = mesaj.value.length;
       }
-      [isim, konu, mesaj].forEach(el => el.addEventListener("input", updateCounts));
+
+      [isim, email, konu, mesaj].forEach(el => el.addEventListener("input", updateCounts));
       updateCounts();
 
       clearBtn.addEventListener("click", () => {
@@ -130,12 +142,13 @@
 
         const payload = {
           isim: isim.value.trim(),
+          email: email.value.trim(),
           konu: konu.value.trim(),
           mesaj: mesaj.value.trim(),
         };
 
-        if (!payload.isim || !payload.mesaj) {
-          setStatus("err", "İsim ve mesaj zorunlu.");
+        if (!payload.isim || !payload.email || !payload.mesaj) {
+          setStatus("err", "İsim, email ve mesaj zorunlu.");
           return;
         }
 

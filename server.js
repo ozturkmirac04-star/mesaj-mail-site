@@ -20,37 +20,44 @@ function escapeHtml(str) {
 }
 
 app.post("/gonder", async (req, res) => {
-  // ✅ LOG burada olmalı
-  
   try {
-    const { isim = "", mesaj = "", konu = "" } = req.body || {};
+    const {
+      isim = "",
+      email = "",
+      mesaj = "",
+      konu = ""
+    } = req.body || {};
 
+    // Environment kontrolü
     if (!process.env.RESEND_API_KEY) {
       return res.status(500).send("Sunucu ayarı eksik: RESEND_API_KEY yok.");
     }
+
     if (!process.env.TO_EMAIL) {
       return res.status(500).send("Sunucu ayarı eksik: TO_EMAIL yok.");
     }
 
-    if (!isim.trim() || !mesaj.trim()) {
-      return res.status(400).send("İsim ve mesaj zorunlu.");
+    // Zorunlu alan kontrolü
+    if (!isim.trim() || !email.trim() || !mesaj.trim()) {
+      return res.status(400).send("İsim, email ve mesaj zorunlu.");
     }
 
-    console.log("POST /gonder parsed:", req.headers["content-type"], {
-      isim,
-      konu,
-      msgLen: mesaj.length,
-    });
+    // Basit email doğrulama
+    if (!email.includes("@")) {
+      return res.status(400).send("Geçerli bir email adresi giriniz.");
+    }
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     const result = await resend.emails.send({
-      from: "onboarding@resend.dev",
+      from: "onboarding@resend.dev", // domain doğruladıktan sonra bunu değiştirebiliriz
       to: [process.env.TO_EMAIL],
-      subject: `Yeni Mesaj${konu ? `: ${konu}` : ""}`,
+      reply_to: email, // 👈 EN ÖNEMLİ KISIM
+      subject: `Yeni Mesaj${konu ? `: ${escapeHtml(konu)}` : ""}`,
       html: `
         <h2>Yeni Mesaj Geldi</h2>
         <p><strong>İsim:</strong> ${escapeHtml(isim)}</p>
+        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
         ${konu ? `<p><strong>Konu:</strong> ${escapeHtml(konu)}</p>` : ""}
         <p><strong>Mesaj:</strong></p>
         <pre style="white-space:pre-wrap;font-family:Arial">${escapeHtml(mesaj)}</pre>
@@ -58,12 +65,16 @@ app.post("/gonder", async (req, res) => {
     });
 
     console.log("Mail gönderildi:", result?.id || result);
+
     return res.send("Mesaj gönderildi ✅");
   } catch (err) {
     console.error("RESEND ERROR:", err);
-    return res.status(500).send(err?.message || "Mail gönderilemedi ❌");
+    return res.status(500).send("Mail gönderilemedi ❌");
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Sunucu çalışıyor: ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`Sunucu çalışıyor: ${PORT}`);
+});
