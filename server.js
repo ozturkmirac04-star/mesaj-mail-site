@@ -30,6 +30,47 @@ if (process.env.DATABASE_URL) {
 }
 
 /* =========================
+   ADMIN SESSIONS
+========================= */
+
+const adminSessions = new Map();
+
+function createAdminSession() {
+  const token = crypto.randomBytes(32).toString("hex");
+
+  adminSessions.set(token, {
+    createdAt: Date.now()
+  });
+
+  return token;
+}
+
+function isAdmin(req) {
+  const cookie = req.headers.cookie || "";
+
+  const match = cookie
+    .split(";")
+    .map(x => x.trim())
+    .find(x => x.startsWith("admin_session="));
+
+  if (!match) return false;
+
+  const token = match.substring("admin_session=".length);
+
+  return adminSessions.has(token);
+}
+
+function requireAdmin(req, res, next) {
+  if (!isAdmin(req)) {
+    return res.status(401).json({
+      error: "Yetkisiz erişim."
+    });
+  }
+
+  next();
+}
+
+/* =========================
    HEALTH
 ========================= */
 
@@ -51,12 +92,12 @@ function escapeHtml(str) {
 }
 
 /* =========================
-   CHAT DATABASE SETUP
+   DATABASE SETUP
 ========================= */
 
 async function setupDatabase() {
   if (!pool) {
-    console.log("DATABASE_URL bulunamadı. Sohbet sistemi kapalı.");
+    console.log("DATABASE_URL bulunamadı.");
     return;
   }
 
@@ -91,10 +132,7 @@ async function setupDatabase() {
 ========================= */
 
 function generateCode() {
-  return crypto
-    .randomBytes(5)
-    .toString("hex")
-    .toUpperCase();
+  return crypto.randomBytes(5).toString("hex").toUpperCase();
 }
 
 function validChatId(id) {
@@ -124,7 +162,7 @@ app.post("/api/chat/create", async (req, res) => {
       [chatId, code]
     );
 
-    return res.json({
+    res.json({
       chatId,
       code
     });
@@ -132,7 +170,7 @@ app.post("/api/chat/create", async (req, res) => {
   } catch (err) {
     console.error("CHAT CREATE ERROR:", err);
 
-    return res.status(500).json({
+    res.status(500).json({
       error: "Sohbet oluşturulamadı."
     });
   }
@@ -167,27 +205,27 @@ app.get("/api/chat/:id/info", async (req, res) => {
       [id]
     );
 
-    if (result.rows.length === 0) {
+    if (!result.rows.length) {
       return res.status(404).json({
         error: "Sohbet bulunamadı."
       });
     }
 
-    return res.json({
+    res.json({
       code: result.rows[0].public_code
     });
 
   } catch (err) {
     console.error("CHAT INFO ERROR:", err);
 
-    return res.status(500).json({
+    res.status(500).json({
       error: "Sohbet bilgisi alınamadı."
     });
   }
 });
 
 /* =========================
-   GET MESSAGES
+   GET CHAT MESSAGES
 ========================= */
 
 app.get("/api/chat/:id", async (req, res) => {
@@ -206,22 +244,7 @@ app.get("/api/chat/:id", async (req, res) => {
       });
     }
 
-    const chatResult = await pool.query(
-      `
-      SELECT id
-      FROM chats
-      WHERE id = $1
-      `,
-      [id]
-    );
-
-    if (chatResult.rows.length === 0) {
-      return res.status(404).json({
-        error: "Sohbet bulunamadı."
-      });
-    }
-
-    const messagesResult = await pool.query(
+    const result = await pool.query(
       `
       SELECT
         id,
@@ -236,21 +259,21 @@ app.get("/api/chat/:id", async (req, res) => {
       [id]
     );
 
-    return res.json({
-      messages: messagesResult.rows
+    res.json({
+      messages: result.rows
     });
 
   } catch (err) {
     console.error("CHAT GET ERROR:", err);
 
-    return res.status(500).json({
+    res.status(500).json({
       error: "Mesajlar alınamadı."
     });
   }
 });
 
 /* =========================
-   SEND CHAT MESSAGE
+   VISITOR SEND MESSAGE
 ========================= */
 
 app.post("/api/chat/:id/message", async (req, res) => {
@@ -265,15 +288,11 @@ app.post("/api/chat/:id/message", async (req, res) => {
     const text = String(req.body?.text || "").trim();
 
     if (!validChatId(id)) {
-      return res.status(400).send(
-        "Geçersiz sohbet."
-      );
+      return res.status(400).send("Geçersiz sohbet.");
     }
 
     if (!text) {
-      return res.status(400).send(
-        "Mesaj boş olamaz."
-      );
+      return res.status(400).send("Mesaj boş olamaz.");
     }
 
     if (text.length > 1000) {
@@ -282,16 +301,12 @@ app.post("/api/chat/:id/message", async (req, res) => {
       );
     }
 
-    const chatResult = await pool.query(
-      `
-      SELECT id
-      FROM chats
-      WHERE id = $1
-      `,
+    const chat = await pool.query(
+      `SELECT id FROM chats WHERE id = $1`,
       [id]
     );
 
-    if (chatResult.rows.length === 0) {
+    if (!chat.rows.length) {
       return res.status(404).send(
         "Sohbet bulunamadı."
       );
@@ -307,25 +322,281 @@ app.post("/api/chat/:id/message", async (req, res) => {
       [id, text]
     );
 
-    return res.json({
+    res.json({
       success: true
     });
 
   } catch (err) {
     console.error("CHAT MESSAGE ERROR:", err);
 
-    return res.status(500).send(
+    res.status(500).send(
       "Mesaj gönderilemedi."
     );
   }
 });
 
 /* =========================
-   OLD EMAIL MESSAGE SYSTEM
-   ========================= */
+   ADMIN LOGIN
+========================= */
+
+app.post("/api/admin/login", (req, res) => {
+  const password = String(
+    req.body?.password || ""
+  );
+
+  if (!process.env.ADMIN_PASSWORD) {
+    return res.status(500).json({
+      error: "ADMIN_PASSWORD ayarlanmamış."
+    });
+  }
+
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({
+      error: "Şifre yanlış."
+    });
+  }
+
+  const token = createAdminSession();
+
+  res.setHeader(
+    "Set-Cookie",
+    `admin_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400`
+  );
+
+  res.json({
+    success: true
+  });
+});
+
+/* =========================
+   ADMIN LOGOUT
+========================= */
+
+app.post(
+  "/api/admin/logout",
+  requireAdmin,
+  (req, res) => {
+
+    const cookie =
+      req.headers.cookie || "";
+
+    const match = cookie
+      .split(";")
+      .map(x => x.trim())
+      .find(x =>
+        x.startsWith("admin_session=")
+      );
+
+    if (match) {
+      const token =
+        match.substring(
+          "admin_session=".length
+        );
+
+      adminSessions.delete(token);
+    }
+
+    res.setHeader(
+      "Set-Cookie",
+      "admin_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0"
+    );
+
+    res.json({
+      success: true
+    });
+  }
+);
+
+/* =========================
+   ADMIN CHAT LIST
+========================= */
+
+app.get(
+  "/api/admin/chats",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      if (!pool) {
+        return res.status(503).json({
+          error: "Database hazır değil."
+        });
+      }
+
+      const result = await pool.query(`
+        SELECT
+          c.id,
+          c.public_code,
+          c.created_at,
+          COUNT(m.id)::int AS message_count,
+
+          MAX(m.created_at)
+            AS last_message_at
+
+        FROM chats c
+
+        LEFT JOIN messages m
+          ON m.chat_id = c.id
+
+        GROUP BY
+          c.id
+
+        ORDER BY
+          COALESCE(
+            MAX(m.created_at),
+            c.created_at
+          ) DESC
+
+        LIMIT 100
+      `);
+
+      res.json({
+        chats: result.rows
+      });
+
+    } catch (err) {
+
+      console.error(
+        "ADMIN CHAT LIST ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        error: "Sohbetler alınamadı."
+      });
+    }
+  }
+);
+
+/* =========================
+   ADMIN GET CHAT
+========================= */
+
+app.get(
+  "/api/admin/chat/:id",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const { id } = req.params;
+
+      if (!validChatId(id)) {
+        return res.status(400).json({
+          error: "Geçersiz sohbet."
+        });
+      }
+
+      const result = await pool.query(
+        `
+        SELECT
+          id,
+          sender,
+          message AS text,
+          created_at
+
+        FROM messages
+
+        WHERE chat_id = $1
+
+        ORDER BY created_at ASC
+
+        LIMIT 500
+        `,
+        [id]
+      );
+
+      res.json({
+        messages: result.rows
+      });
+
+    } catch (err) {
+
+      console.error(
+        "ADMIN CHAT ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        error: "Sohbet alınamadı."
+      });
+    }
+  }
+);
+
+/* =========================
+   ADMIN SEND REPLY
+========================= */
+
+app.post(
+  "/api/admin/chat/:id/message",
+  requireAdmin,
+  async (req, res) => {
+
+    try {
+
+      const { id } = req.params;
+
+      const text =
+        String(
+          req.body?.text || ""
+        ).trim();
+
+      if (!validChatId(id)) {
+        return res.status(400).send(
+          "Geçersiz sohbet."
+        );
+      }
+
+      if (!text) {
+        return res.status(400).send(
+          "Mesaj boş olamaz."
+        );
+      }
+
+      if (text.length > 1000) {
+        return res.status(400).send(
+          "Mesaj en fazla 1000 karakter olabilir."
+        );
+      }
+
+      await pool.query(
+        `
+        INSERT INTO messages
+          (chat_id, sender, message)
+        VALUES
+          ($1, 'admin', $2)
+        `,
+        [id, text]
+      );
+
+      res.json({
+        success: true
+      });
+
+    } catch (err) {
+
+      console.error(
+        "ADMIN SEND ERROR:",
+        err
+      );
+
+      res.status(500).send(
+        "Cevap gönderilemedi."
+      );
+    }
+  }
+);
+
+/* =========================
+   OLD EMAIL SYSTEM
+========================= */
 
 app.post("/gonder", async (req, res) => {
+
   try {
+
     const {
       isim = "",
       email = "",
@@ -362,12 +633,20 @@ app.post("/gonder", async (req, res) => {
     }
 
     const resend =
-      new Resend(process.env.RESEND_API_KEY);
+      new Resend(
+        process.env.RESEND_API_KEY
+      );
 
     const result =
       await resend.emails.send({
-        from: "onboarding@resend.dev",
-        to: [process.env.TO_EMAIL],
+
+        from:
+          "onboarding@resend.dev",
+
+        to: [
+          process.env.TO_EMAIL
+        ],
+
         reply_to: email,
 
         subject:
@@ -419,7 +698,7 @@ app.post("/gonder", async (req, res) => {
       result?.id || result
     );
 
-    return res.send(
+    res.send(
       "Mesaj gönderildi ✅"
     );
 
@@ -430,14 +709,14 @@ app.post("/gonder", async (req, res) => {
       err
     );
 
-    return res.status(500).send(
+    res.status(500).send(
       "Mail gönderilemedi ❌"
     );
   }
 });
 
 /* =========================
-   START SERVER
+   START
 ========================= */
 
 const PORT =
